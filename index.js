@@ -22,57 +22,31 @@ async function run() {
     const appointmentOptionCollection = client.db("doctorsPortalsPro").collection("appointmentOption");
     const bookingsCollection = client.db("doctorsPortalsPro").collection("bookings");
 
-    // // Use Aggregate to query multiple collection and then merge data
-    // app.get("/appointmentOption", async (req, res) => {
-    //   const date = req.query.date;
-    //   const options = await appointmentOptionCollection.find().toArray();
-
-    //   // get the bookings of the provider date
-    //   const bookingQuery = { appointmentDate: date };
-    //   const alreadyBooked = await bookingsCollection
-    //     .find(bookingQuery)
-    //     .toArray();
-
-    //   // code carefully :D
-    //   options.forEach((option) => {
-    //     const optionBooked = alreadyBooked.filter(
-    //       (book) => book.treatment === option.name
-    //     );
-    //     const bookedSlots = optionBooked.map((book) => book.slot);
-    //     const remainingSlots = option.slots.filter(
-    //       (slot) => !bookedSlots.includes(slot)
-    //     );
-    //     option.slots = remainingSlots;
-    //   });
-
-    //   res.send(options);
-    // });
-
-    app.get('/appointmentOption', async (req, res) => {
+    // Use Aggregate to query multiple collection and then merge data
+    app.get("/appointmentOption", async (req, res) => {
       const date = req.query.date;
+      const query = {};
+      const options = await appointmentOptionCollection.find().toArray();
 
-      // step 1:  get all services
-      const services = await appointmentOptionCollection.find().toArray();
+      // get the bookings of the provider date
+      const bookingQuery = { appointmentDate: date };
+      const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray();
 
-      // step 2: get the booking of that day. output: [{}, {}, {}, {}, {}, {}]
-      const query = { date: date };
-      const bookings = await bookingsCollection.find(query).toArray();
+      // code carefully :D
+      options.forEach((option) => {
+        const optionBooked = alreadyBooked.filter(book => book.treatment === option.name);
+        const bookedSlots = optionBooked.map(book => book.slot);
+        
+        const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
+        option.slots = remainingSlots;
+        
+      })
 
-      // step 3: for each service
-      services.forEach(service => {
-          // step 4: find bookings for that service. output: [{}, {}, {}, {}]
-          const serviceBookings = bookings.filter(book => book.treatment === service.name);
-          // step 5: select slots for the service Bookings: ['', '', '', '']
-          const bookedSlots = serviceBookings.map(book => book.slot);
-          // step 6: select those slots that are not in bookedSlots
-          const available = service.slots.filter(slot => !bookedSlots.includes(slot));
-          //step 7: set available to slots to make it easier 
-          service.slots = available;
-      });
+      res.send(options);
+    });
 
+ 
 
-      res.send(services);
-  })
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
