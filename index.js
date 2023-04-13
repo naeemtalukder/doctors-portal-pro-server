@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -45,14 +45,37 @@ async function run() {
       res.send(options);
     });
 
- 
+    // app.get('/v2/appointmentOption', async(req, res) => {
+
+    // })
+
 
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
+      // console.log(booking);
+      const query = {
+        _id: new ObjectId(booking.id)
+      }
+      const options = await appointmentOptionCollection.findOne(query);
+      console.log(options);
+      const remainingSlots =options.slots.filter(slot=> slot !== booking.slot)
+      const updated = {name: options.name, slots: remainingSlots}
+      await appointmentOptionCollection.updateOne(query, {
+        $set: updated
+      })
+ 
+
+      // const alreadyBooked = await bookingsCollection.find(query).toArray();
+      // if(alreadyBooked.length){
+      //   const message = `You already have a booking on ${booking.appointmentDate}`
+      //   return res.send({acknowledged: false, message})
+      // }
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
+
   } finally {
+
   }
 }
 run().catch(console.log);
