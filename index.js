@@ -73,7 +73,6 @@ async function run() {
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
-
   } finally {
 
   }
